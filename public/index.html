@@ -412,6 +412,12 @@
                         <button id="btnDisablePush" type="button">Disable Push</button>
                     </div>
                     <div class="tiny" id="pushStatus">Push: Off</div>
+
+
+                    <div class="btnrow" style="margin-top:8px;">
+                        <button id="btnTestPush" type="button">Send Test Push</button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -948,6 +954,38 @@
 
         document.getElementById("btnEnablePush")?.addEventListener("click", enablePush);
         document.getElementById("btnDisablePush")?.addEventListener("click", disablePush);
+
+
+
+        document.getElementById("btnTestPush")?.addEventListener("click", async () => {
+            const status = document.getElementById("pushStatus");
+            status.textContent = "Push: Sending test…";
+
+            const reg = await navigator.serviceWorker.getRegistration();
+            const sub = await reg?.pushManager.getSubscription();
+
+            if (!sub) {
+                status.textContent = "Push: Please enable push first.";
+                return;
+            }
+
+            const r = await fetch("/api/test-push", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endpoint: sub.endpoint })
+            });
+
+            const data = await r.json().catch(() => ({}));
+            status.textContent = data.ok ? "Push: Test sent ✅" : ("Push: Test failed ❌");
+        });
+
+
+
+
+
+
+
+
 
         async function checkPushStatus() {
             const status = document.getElementById("pushStatus");
