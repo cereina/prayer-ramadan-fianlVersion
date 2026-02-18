@@ -534,8 +534,8 @@
         // Hijri helpers
         // -----------------------
         const HIJRI_MONTHS_EN = [
-            "Muharram","Safar","Rabiʿ al-Awwal","Rabiʿ al-Thani","Jumada al-Awwal","Jumada al-Thani",
-            "Rajab","Shaʿban","Ramadan","Shawwal","Dhu al-Qaʿdah","Dhu al-Hijjah"
+            "Muharram", "Safar", "Rabiʿ al-Awwal", "Rabiʿ al-Thani", "Jumada al-Awwal", "Jumada al-Thani",
+            "Rajab", "Shaʿban", "Ramadan", "Shawwal", "Dhu al-Qaʿdah", "Dhu al-Hijjah"
         ];
 
         function hijriParts(date) {
@@ -949,8 +949,33 @@
         document.getElementById("btnEnablePush")?.addEventListener("click", enablePush);
         document.getElementById("btnDisablePush")?.addEventListener("click", disablePush);
 
+        async function checkPushStatus() {
+            const status = document.getElementById("pushStatus");
+
+            if (!("serviceWorker" in navigator)) {
+                status.textContent = "Push: Not supported";
+                return;
+            }
+
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (!reg) {
+                status.textContent = "Push: Off";
+                return;
+            }
+
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                status.textContent = "Push: On (Iftar only)";
+            } else {
+                status.textContent = "Push: Off";
+            }
+        }
+
+
         // Register SW on load
         registerSW();
+        checkPushStatus();
+
 
         // Initial render
         const saved = loadState();
