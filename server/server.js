@@ -59,6 +59,61 @@ app.post("/api/unsubscribe", async (req, res) => {
   res.json({ ok: true });
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+app.post("/api/test-push", async (req, res) => {
+  const { endpoint } = req.body || {};
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+
+  const { rows } = await pool.query(
+    "SELECT * FROM subscriptions WHERE endpoint=$1",
+    [endpoint]
+  );
+
+  if (!rows.length) return res.status(404).json({ ok: false, error: "Subscription not found" });
+
+  const s = rows[0];
+  const payload = JSON.stringify({
+    title: "Test Notification",
+    body: "If you see this, push is working ✅",
+    url: "/"
+  });
+
+  try {
+    await webpush.sendNotification(
+      { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+      payload
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    const code = e?.statusCode;
+    if (code === 404 || code === 410) {
+      await pool.query("DELETE FROM subscriptions WHERE endpoint=$1", [s.endpoint]);
+    }
+    return res.status(500).json({ ok: false, error: e?.message || "Push failed" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 3000;
