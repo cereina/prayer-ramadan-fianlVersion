@@ -958,26 +958,34 @@
 
 
         document.getElementById("btnTestPush")?.addEventListener("click", async () => {
-            const status = document.getElementById("pushStatus");
-            status.textContent = "Push: Sending test…";
+  const status = document.getElementById("pushStatus");
+  status.textContent = "Push: Sending test…";
 
-            const reg = await navigator.serviceWorker.getRegistration();
-            const sub = await reg?.pushManager.getSubscription();
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = await reg?.pushManager.getSubscription();
 
-            if (!sub) {
-                status.textContent = "Push: Please enable push first.";
-                return;
-            }
+  if (!sub) {
+    status.textContent = "Push: Please enable push first.";
+    return;
+  }
 
-            const r = await fetch("/api/test-push", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ endpoint: sub.endpoint })
-            });
+  const r = await fetch("/api/test-push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: sub.endpoint })
+  });
 
-            const data = await r.json().catch(() => ({}));
-            status.textContent = data.ok ? "Push: Test sent ✅" : ("Push: Test failed ❌");
-        });
+  const text = await r.text();
+  let data = {};
+  try { data = JSON.parse(text); } catch {}
+
+  if (r.ok && data.ok) {
+    status.textContent = "Push: Test sent ✅";
+  } else {
+    status.textContent = `Push: Test failed ❌ (${r.status}) ${data.error || text.slice(0,80)}`;
+  }
+});
+
 
 
 
