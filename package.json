@@ -7,10 +7,8 @@
     "cron": "node server/send-iftar.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
     "pg": "^8.11.5",
     "web-push": "^3.6.7",
-    "luxon": "^3.5.0",
-    "praytime": "^1.0.0"
+    "express": "^4.19.2"
   }
 }
