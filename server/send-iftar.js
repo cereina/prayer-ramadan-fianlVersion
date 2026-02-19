@@ -8,6 +8,7 @@
 
 import webpush from "web-push";
 import { pool } from "./db.js";
+import { initDb } from "./db.js";
 
 const WINDOW_MINUTES = 5; // Railway cron min frequency is 5 minutes
 
@@ -97,6 +98,8 @@ function minutesDiff(nowMin, targetMin) {
 }
 
 async function main() {
+  await initDb();
+
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_SUBJECT) {
     throw new Error("Missing VAPID env vars: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT");
   }
