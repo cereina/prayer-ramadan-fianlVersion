@@ -3,6 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import webpush from "web-push";
 import { pool } from "./db.js";
+import { initDb } from "./db.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -126,4 +128,7 @@ app.post("/api/test-push", async (req, res) => {
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 3000;
+
+await initDb();
+
 app.listen(port, () => console.log("Server running on", port));
