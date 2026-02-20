@@ -1,25 +1,20 @@
 import pg from "pg";
-
 const { Pool } = pg;
+
+function sslForRailway(urlStr) {
+  try {
+    const u = new URL(urlStr);
+    // Railway internal hostname usually does NOT require SSL
+    if (u.hostname.endsWith(".railway.internal")) return false;
+
+    // For external/hosted Postgres, SSL is often required
+    return { rejectUnauthorized: false };
+  } catch {
+    return false;
+  }
+}
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Required for Railway
+  ssl: sslForRailway(process.env.DATABASE_URL || "")
 });
-
-export async function initDb() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS subscriptions (
-      endpoint TEXT PRIMARY KEY,
-      p256dh TEXT NOT NULL,
-      auth TEXT NOT NULL,
-      lat DOUBLE PRECISION NOT NULL,
-      lng DOUBLE PRECISION NOT NULL,
-      city TEXT NOT NULL,
-      timezone TEXT NOT NULL,
-      last_sent_date TEXT
-    );
-  `);
-
-  console.log("Database initialized");
-}
