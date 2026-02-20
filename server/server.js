@@ -3,8 +3,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import webpush from "web-push";
 import { pool } from "./db.js";
-import { initDb } from "./db.js";
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,46 +72,37 @@ app.post("/api/unsubscribe", async (req, res) => {
 
 
 app.post("/api/test-push", async (req, res) => {
+  const { endpoint } = req.body || {};
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+
+  const { rows } = await pool.query(
+    "SELECT * FROM subscriptions WHERE endpoint=$1",
+    [endpoint]
+  );
+
+  if (!rows.length) return res.status(404).json({ ok: false, error: "Subscription not found" });
+
+  const s = rows[0];
+  const payload = JSON.stringify({
+    title: "Test Notification",
+    body: "If you see this, push is working ✅",
+    url: "/"
+  });
+
   try {
-    const { endpoint } = req.body || {};
-    if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
-
-    const { rows } = await pool.query(
-      "SELECT endpoint, p256dh, auth FROM subscriptions WHERE endpoint=$1",
-      [endpoint]
+    await webpush.sendNotification(
+      { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+      payload
     );
-
-    if (!rows.length) return res.status(404).json({ ok: false, error: "Subscription not found" });
-
-    const s = rows[0];
-
-    const payload = JSON.stringify({
-      title: "Test Notification",
-      body: "If you see this, push is working ✅",
-      url: "/"
-    });
-
-    const sub = { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } };
-
-    const sendPromise = webpush.sendNotification(sub, payload);
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Push send timeout (8s)")), 8000)
-    );
-
-    await Promise.race([sendPromise, timeoutPromise]);
-
     return res.json({ ok: true });
   } catch (e) {
-    // web-push often sets statusCode
-    console.error("test-push error:", e?.statusCode, e?.message || e);
-    return res.status(500).json({
-      ok: false,
-      error: e?.message || "Push failed",
-      statusCode: e?.statusCode || null
-    });
+    const code = e?.statusCode;
+    if (code === 404 || code === 410) {
+      await pool.query("DELETE FROM subscriptions WHERE endpoint=$1", [s.endpoint]);
+    }
+    return res.status(500).json({ ok: false, error: e?.message || "Push failed" });
   }
 });
-
 
 
 
@@ -128,7 +117,4 @@ app.post("/api/test-push", async (req, res) => {
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 3000;
-
-await initDb();
-
 app.listen(port, () => console.log("Server running on", port));
