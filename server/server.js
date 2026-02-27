@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import webpush from "web-push";
-import { pool } from "./db.js";
+import { pool, initDb } from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,8 +13,12 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
+
 const app = express();
 app.use(express.json());
+
+
+await initDb();
 
 // Serve PWA files
 app.use(express.static(path.join(__dirname, "..", "public")));
